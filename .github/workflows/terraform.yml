@@ -1,4 +1,4 @@
-name: Terraform
+name: AWS OIDC Deployment
 
 on:
   push:
@@ -10,19 +10,24 @@ permissions:
   contents: read
 
 jobs:
-  terraform:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::300156334215:role/github-actions-terraform-role
           aws-region: ap-south-1
+          audience: sts.amazonaws.com
 
-      - name: Verify AWS
+      - name: Verify AWS identity
         run: |
           aws sts get-caller-identity
+
+      - name: Test AWS access
+        run: |
+          aws s3 ls
