@@ -5,130 +5,24 @@ on:
     branches:
       - main
 
-  pull_request:
-    branches:
-      - main
-
-  workflow_dispatch:
-
 permissions:
   id-token: write
   contents: read
 
 jobs:
-
-  terraform-plan:
-    name: Terraform Plan
+  terraform:
     runs-on: ubuntu-latest
 
     steps:
-
-      # ========================================================
-      # Checkout
-      # ========================================================
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-
-      # ========================================================
-      # Debug GitHub Context
-      # ========================================================
-
-      - name: Debug GitHub context
-        run: |
-          echo "Repository: $GITHUB_REPOSITORY"
-          echo "Ref: $GITHUB_REF"
-          echo "Event: $GITHUB_EVENT_NAME"
-
-
-      # ========================================================
-      # Configure AWS Credentials using OIDC
-      # ========================================================
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::300156334215:role/github-actions-terraform-role
           aws-region: ap-south-1
 
-
-      # ========================================================
-      # Verify AWS Identity
-      # ========================================================
-
-      - name: Verify AWS identity
+      - name: Verify AWS
         run: |
           aws sts get-caller-identity
-
-
-      # ========================================================
-      # Setup Terraform
-      # ========================================================
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.9.8
-
-
-      # ========================================================
-      # Terraform Version
-      # ========================================================
-
-      - name: Terraform version
-        run: |
-          terraform version
-
-
-      # ========================================================
-      # Terraform Format
-      # ========================================================
-
-      - name: Terraform format check
-        run: |
-          terraform fmt -check -recursive
-
-
-      # ========================================================
-      # Terraform Init
-      # ========================================================
-
-      - name: Terraform Init
-        working-directory: ./terraform
-        run: |
-          terraform init \
-            -input=false
-
-
-      # ========================================================
-      # Terraform Validate
-      # ========================================================
-
-      - name: Terraform Validate
-        working-directory: ./terraform
-        run: |
-          terraform validate
-
-
-      # ========================================================
-      # Terraform Plan
-      # ========================================================
-
-      - name: Terraform Plan
-        working-directory: ./terraform
-        run: |
-          terraform plan \
-            -input=false \
-            -out=tfplan
-
-
-      # ========================================================
-      # Upload Terraform Plan
-      # ========================================================
-
-      - name: Upload Terraform plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan
-          path: ./terraform/tfplan
