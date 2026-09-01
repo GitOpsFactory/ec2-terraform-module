@@ -3,7 +3,7 @@ resource "aws_instance" "this" {
   instance_type = var.instance_type
   
   tags = {
-      Name = "Terraform-EC2"
-	  Environment = var.environment
-	}
+    Name        = "Terraform-EC2"
+    Environment = var.environment
+  }
 }
