@@ -1,11 +1,17 @@
 variable "aws_region" {
-  type = string
+  description = "AWS region"
+  type        = string
+  default     = "ap-south-1"
 }
 
 variable "ami" {
-  type = string
+  description = "AMI ID for EC2 instance"
+  type        = string
+  default     = "ami-0c55b159cbfafe1f0"
 }
 
 variable "instance_type" {
-  type = string
+  description = "EC2 instance type"
+  type        = string
+  default     = "t2.micro"
 }
