@@ -1,24 +1,13 @@
 name: Terraform Deploy
 
 on:
-  pull_request:
-    branches:
-      - main
-
   push:
     branches:
       - main
 
-  workflow_dispatch:
-
 permissions:
   id-token: write
   contents: read
-
-env:
-  AWS_REGION: ap-south-1
-  TF_IN_AUTOMATION: true
-  TF_INPUT: false
 
 jobs:
 
@@ -28,136 +17,46 @@ jobs:
 
     steps:
 
-      # -----------------------------
-      # Checkout
-      # -----------------------------
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      # -----------------------------
-      # Setup Terraform
-      # -----------------------------
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # -----------------------------
-      # Configure AWS using OIDC
-      # -----------------------------
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::300156334215:role/github-actions-terraform-role
-          role-session-name: github-actions-terraform
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      # -----------------------------
-      # Verify AWS identity
-      # -----------------------------
       - name: Verify AWS identity
         run: |
           aws sts get-caller-identity
 
-      # -----------------------------
-      # Terraform Init
-      # -----------------------------
+
       - name: Terraform Init
         run: |
           terraform init
 
-      # -----------------------------
-      # Terraform Format
-      # -----------------------------
       - name: Terraform Format Check
         run: |
           terraform fmt -check -recursive
 
-      # -----------------------------
-      # Terraform Validate
-      # -----------------------------
+
       - name: Terraform Validate
         run: |
           terraform validate
 
-      # -----------------------------
-      # Terraform Plan
-      # -----------------------------
+
       - name: Terraform Plan
         run: |
           terraform plan -out=tfplan
 
-      # -----------------------------
-      # Save Terraform Plan
-      # -----------------------------
-      - name: Upload Terraform Plan
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan
-          path: tfplan
+
+       - name: Terraform Apply
+         run: |
+           terraform apply -auto-approve tfplan 
 
 
-  terraform-apply:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-
-    # Apply only after successful plan
-    needs:
-      - terraform-plan
-
-    # Apply only when pushing to main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    environment:
-      name: production
-
-    steps:
-
-      # -----------------------------
-      # Checkout
-      # -----------------------------
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      # -----------------------------
-      # Setup Terraform
-      # -----------------------------
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      # -----------------------------
-      # Configure AWS OIDC
-      # -----------------------------
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::300156334215:role/github-actions-terraform-role
-          role-session-name: github-actions-terraform
-          aws-region: ${{ env.AWS_REGION }}
-
-      # -----------------------------
-      # Verify AWS
-      # -----------------------------
-      - name: Verify AWS identity
-        run: |
-          aws sts get-caller-identity
-
-      # -----------------------------
-      # Terraform Init
-      # -----------------------------
-      - name: Terraform Init
-        run: |
-          terraform init
-
-      # -----------------------------
-      # Terraform Validate
-      # -----------------------------
-      - name: Terraform Validate
-        run: |
-          terraform validate
-
-      # -----------------------------
-      # Terraform Apply
-      # -----------------------------
-      - name: Terraform Apply
-        run: |
-          terraform apply -auto-approve
