@@ -5,7 +5,7 @@ provider "aws" {
 module "app" {
   source = "../../modules/ec2"
 
-  ami = var.ami
+  ami           = var.ami
   instance_type = var.instance_type
   environment   = "dev"
 }
