@@ -5,43 +5,99 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Terraform environment"
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - qa
+          - prod
+
 permissions:
   id-token: write
   contents: read
 
+env:
+  TF_ENV: ${{ inputs.environment || 'dev' }}
+
 jobs:
+
   terraform:
+    name: Terraform ${{ inputs.environment || 'dev' }}
     runs-on: ubuntu-latest
 
     steps:
 
-      - name: Checkout
+      # -----------------------------------
+      # Checkout
+      # -----------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v6
 
+      # -----------------------------------
+      # Setup Terraform
+      # -----------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      # -----------------------------------
+      # Configure AWS credentials using OIDC
+      # -----------------------------------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Terraform Init
-        working-directory: environments/dev
-        run: |
-          terraform init
+          role-session-name: github-actions-${{ env.TF_ENV }}
 
+      # -----------------------------------
+      # Verify AWS identity
+      # -----------------------------------
+      - name: Verify AWS identity
+        run: |
+          echo "AWS Account:"
+          aws sts get-caller-identity
+
+      # -----------------------------------
+      # Show Terraform environment
+      # -----------------------------------
+      - name: Show Terraform environment
+        run: |
+          echo "Terraform Environment: ${{ env.TF_ENV }}"
+          echo "Terraform Directory: environments/${{ env.TF_ENV }}"
+
+      # -----------------------------------
+      # Terraform Init
+      # -----------------------------------
+      - name: Terraform Init
+        working-directory: environments/${{ env.TF_ENV }}
+        run: |
+          terraform init 
+
+      # -----------------------------------
+      # Terraform Validate
+      # -----------------------------------
       - name: Terraform Validate
-        working-directory: environments/dev
+        working-directory: environments/${{ env.TF_ENV }}
         run: |
           terraform validate
 
+      # -----------------------------------
+      # Terraform Plan
+      # -----------------------------------
       - name: Terraform Plan
-        working-directory: environments/dev 
+        working-directory: environments/${{ env.TF_ENV }}
         run: |
           terraform plan -out=tfplan
 
+      # -----------------------------------
+      # Terraform Apply
+      # -----------------------------------
       - name: Terraform Apply
-        working-directory: environments/dev
+        working-directory: environments/${{ env.TF_ENV }}
         run: |
           terraform apply -auto-approve tfplan
